@@ -64,6 +64,7 @@ class Language(ABC):
         self.qrels_filename = qrels_filename
         self.queries:list[Query] = []
         self.avarage_queries = None
+        self.tokens = 0
 
         if not os.path.exists("inverted_index____" + self.tag + ".json"):
             self.__parse_documents()
@@ -146,6 +147,9 @@ class Language(ABC):
 
             query = Query(num,documents_x,operator_tag,documents_y,qrels,self.result_filename)
             self.queries.append(query)
+    
+    def add_token(self):
+        self.tokens += 1
 
 class Czech(Language):
     def __init__(self, tag = "cs",DOCUMENTS = "documents_cs",train ="topics-train_cs.xml",RESULT_FILENAME = "results-cs.dat",QRELS_TRAIN ="qrels-train_cs.txt",NLP = "cs"):
@@ -168,7 +172,7 @@ class IndexInvertor:
 
     def normalize(self, word: str) -> str:
         word_clean = ''.join(c.lower() for c in word if c not in string.punctuation)
-        if  word_clean:
+        if  len(word_clean) > 0:
             return simplemma.lemmatize(word_clean, self.nlp)
         
         return ""
@@ -197,6 +201,7 @@ class IndexInvertor:
                 normalized_token = self.normalize(token)
 
                 if normalized_token.isalpha():
+                    language.add_token()
                     self.__add(normalized_token, id_document)
 
     def sort_values(self):
@@ -240,27 +245,27 @@ class AndNot(Operator):
                 self.result_documents.append(document_y)
 
 
-def google_task_questions(inverted_index, lang):
-    number_of_all_tokens = 0
+def google_task_questions(inverted_index):
     number_of_unique_terms = len(inverted_index)
     number_of_all_postings = 0
     term_with_highest_document_frequency = ""
     highest_document_frequency = 0
+    sum_posting_len = 0
 
     for term, postings in inverted_index.items():
         len_postings = len(postings)
         number_of_all_postings += 1    
-        number_of_all_tokens += len(postings)
 
         if len_postings > highest_document_frequency:
             highest_document_frequency = len_postings
             term_with_highest_document_frequency = term
+        
+        sum_posting_len += len_postings
 
-    average_document_frequency = round(number_of_all_tokens / number_of_unique_terms,2)
+    average_document_frequency = round(sum_posting_len / number_of_unique_terms,2)
 
     print(number_of_unique_terms)
     print(number_of_all_postings)
-    print(number_of_all_tokens)
     print(term_with_highest_document_frequency, highest_document_frequency)
     print(highest_document_frequency)
     print(average_document_frequency)
@@ -270,6 +275,7 @@ def information_retrivial():
 
     for language in languages:
         print(language.avarage_queries)
+        print(language.tokens)
     
     with open("inverted_index____" + "cs" + ".json", "r", encoding="utf-8") as f:
             inverted_index_cs = json.load(f)
