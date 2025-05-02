@@ -11,6 +11,7 @@ import json
 import spacy_udpipe
 from nltk.stem import WordNetLemmatizer
 from nltk import PorterStemmer
+import simplemma
 
 class Query:
     def __init__(self,num,x,operation,y,qrels,result_name):
@@ -103,9 +104,10 @@ class Language(ABC):
 
             try:
                 self.indexInvertor.read_xml(xml_path, self)
-
+            
             except Exception:
-                print(xml_path)
+                pass
+
 
             self.indexInvertor.sort_values()
 
@@ -146,11 +148,11 @@ class Language(ABC):
             self.queries.append(query)
 
 class Czech(Language):
-    def __init__(self, tag = "cs",DOCUMENTS = "documents_cs",train ="topics-train_cs.xml",RESULT_FILENAME = "results-cs.dat",QRELS_TRAIN ="qrels-train_cs.txt",NLP = spacy_udpipe.load("cs")):
+    def __init__(self, tag = "cs",DOCUMENTS = "documents_cs",train ="topics-train_cs.xml",RESULT_FILENAME = "results-cs.dat",QRELS_TRAIN ="qrels-train_cs.txt",NLP = "cs"):
         super().__init__(tag,DOCUMENTS,train,RESULT_FILENAME,QRELS_TRAIN,NLP)
 
 class English(Language):
-    def __init__(self, tag = "en",DOCUMENTS = "documents_en",train="topics-train_en.xml",RESULT_FILENAME = "results-en.dat",QRELS_TRAIN = "qrels-train_en.txt",NLP = PorterStemmer()):
+    def __init__(self, tag = "en",DOCUMENTS = "documents_en",train="topics-train_en.xml",RESULT_FILENAME = "results-en.dat",QRELS_TRAIN = "qrels-train_en.txt",NLP = "en"):
         super().__init__(tag,DOCUMENTS,train,RESULT_FILENAME,QRELS_TRAIN,NLP)
 
 class IndexInvertor:
@@ -166,18 +168,11 @@ class IndexInvertor:
 
     def normalize(self, word: str) -> str:
         word_clean = ''.join(c.lower() for c in word if c not in string.punctuation)
-
-        if isinstance(self.nlp, PorterStemmer):
-            return self.nlp.stem(word_clean)
-        else:
-            doc = self.nlp(word_clean)
-
-            for token in doc:
-                if token.is_alpha:
-                    return token.lemma_.lower()
-
-        return word_clean
-
+        if  word_clean:
+            return simplemma.lemmatize(word_clean, self.nlp)
+        
+        return ""
+    
     def read_xml(self, xml_path: str, language: Language):
         print(f"Reading: {xml_path}")
         tree = ET.parse(xml_path)
@@ -244,10 +239,46 @@ class AndNot(Operator):
             if document_y not in y and document_y not in self.result_documents:
                 self.result_documents.append(document_y)
 
+
+def google_task_questions(inverted_index, lang):
+    number_of_all_tokens = 0
+    number_of_unique_terms = len(inverted_index)
+    number_of_all_postings = 0
+    term_with_highest_document_frequency = ""
+    highest_document_frequency = 0
+
+    for term, postings in inverted_index.items():
+        len_postings = len(postings)
+        number_of_all_postings += 1    
+        number_of_all_tokens += len(postings)
+
+        if len_postings > highest_document_frequency:
+            highest_document_frequency = len_postings
+            term_with_highest_document_frequency = term
+
+    average_document_frequency = round(number_of_all_tokens / number_of_unique_terms,2)
+
+    print(number_of_unique_terms)
+    print(number_of_all_postings)
+    print(number_of_all_tokens)
+    print(term_with_highest_document_frequency, highest_document_frequency)
+    print(highest_document_frequency)
+    print(average_document_frequency)
+
 def information_retrivial():
     languages:list[Language] = [Czech(),English()]
 
     for language in languages:
         print(language.avarage_queries)
+    
+    with open("inverted_index____" + "cs" + ".json", "r", encoding="utf-8") as f:
+            inverted_index_cs = json.load(f)
+    
+    with open("inverted_index____" + "en" + ".json", "r", encoding="utf-8") as f:
+            inverted_index_en = json.load(f)
+    
+    google_task_questions(inverted_index_cs, "cs")
+    google_task_questions(inverted_index_en, "en")
+
 if __name__ == "__main__":
     information_retrivial()
