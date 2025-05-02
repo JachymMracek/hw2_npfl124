@@ -240,9 +240,9 @@ class Or(Operator):
 
 class AndNot(Operator):
     def function(self,y):
-        for document_y in y:
-            if document_y not in y and document_y not in self.result_documents:
-                self.result_documents.append(document_y)
+        for document_x in self.used:
+            if document_x not in y:
+                self.result_documents.append(document_x)
 
 
 def google_task_questions(inverted_index):
