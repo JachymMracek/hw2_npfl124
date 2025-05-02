@@ -283,8 +283,8 @@ def information_retrivial():
     with open("inverted_index____" + "en" + ".json", "r", encoding="utf-8") as f:
             inverted_index_en = json.load(f)
     
-    google_task_questions(inverted_index_cs, "cs")
-    google_task_questions(inverted_index_en, "en")
+    google_task_questions(inverted_index_cs)
+    google_task_questions(inverted_index_en)
 
 if __name__ == "__main__":
     information_retrivial()
