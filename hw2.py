@@ -241,7 +241,7 @@ class Or(Operator):
 class AndNot(Operator):
     def function(self,y):
         for document_x in self.used:
-            if document_x not in y:
+            if document_x not in set(y):
                 self.result_documents.append(document_x)
 
 
